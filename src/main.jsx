@@ -29,6 +29,11 @@ function renderInlineMarkdown(value) {
     .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1 ↗</a>');
 }
 
+function renderTableRow(line, tagName) {
+  const cells = line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|');
+  return `<tr>${cells.map((cell) => `<${tagName}>${renderInlineMarkdown(cell.trim())}</${tagName}>`).join('')}</tr>`;
+}
+
 function renderMarkdown(value) {
   const lines = value.replace(/\r\n/g, '\n').split('\n');
   const blocks = [];
@@ -38,18 +43,38 @@ function renderMarkdown(value) {
   const flushParagraph = () => { if (paragraph.length) { blocks.push(`<p>${paragraph.map(renderInlineMarkdown).join('<br>')}</p>`); paragraph = []; } };
   const flushList = () => { if (list) { blocks.push(`<${list.type}>${list.items.map((item) => `<li>${renderInlineMarkdown(item)}</li>`).join('')}</${list.type}>`); list = null; } };
   const flush = () => { flushParagraph(); flushList(); };
-  lines.forEach((line) => {
-    if (line.trim().startsWith('```')) { if (code) { blocks.push(`<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`); code = null; } else { flush(); code = []; } return; }
-    if (code) { code.push(line); return; }
+  let index = 0;
+  while (index < lines.length) {
+    const line = lines[index];
+    if (line.trim().startsWith('```')) { if (code) { blocks.push(`<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`); code = null; } else { flush(); code = []; } index += 1; continue; }
+    if (code) { code.push(line); index += 1; continue; }
     const heading = line.match(/^(#{1,3})\s+(.+)$/);
     const unordered = line.match(/^\s*[-*]\s+(.+)$/);
     const ordered = line.match(/^\s*\d+[.)]\s+(.+)$/);
+    const tableSeparator = lines[index + 1]?.match(/^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$/);
+    if (line.includes('|') && tableSeparator) {
+      flush();
+      const rows = [`<table><thead>${renderTableRow(line, 'th')}</thead><tbody>`];
+      index += 2;
+      while (index < lines.length && lines[index].includes('|') && lines[index].trim()) { rows.push(renderTableRow(lines[index], 'td')); index += 1; }
+      rows.push('</tbody></table>');
+      blocks.push(rows.join(''));
+      continue;
+    }
+    if (line.trim().startsWith('>')) {
+      flush();
+      const quoteLines = [];
+      while (index < lines.length && lines[index].trim().startsWith('>')) { quoteLines.push(lines[index].replace(/^\s*>\s?/, '')); index += 1; }
+      blocks.push(`<blockquote>${renderMarkdown(quoteLines.join('\n'))}</blockquote>`);
+      continue;
+    }
     if (heading) { flush(); blocks.push(`<h${heading[1].length}>${renderInlineMarkdown(heading[2])}</h${heading[1].length}>`); }
     else if (unordered || ordered) { const type = unordered ? 'ul' : 'ol'; if (!list || list.type !== type) { flushList(); list = { type, items: [] }; } list.items.push((unordered || ordered)[1]); }
     else if (/^\s*([-*_])(?:\s*\1){2,}\s*$/.test(line)) { flush(); blocks.push('<hr>'); }
     else if (line.trim()) { flushList(); paragraph.push(line); }
     else flush();
-  });
+    index += 1;
+  }
   if (code) blocks.push(`<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`);
   flush();
   return blocks.join('');
@@ -156,7 +181,7 @@ function App() {
       </section>
       <div className="composer-wrap"><form className="composer" id="composer" onSubmit={askGemini}><textarea name="prompt" rows="1" placeholder="Ask anything..." aria-label="Message Dora the Explorer" onInput={(event) => { event.currentTarget.style.height = 'auto'; event.currentTarget.style.height = `${Math.min(event.currentTarget.scrollHeight, 130)}px`; }} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form.requestSubmit(); } }} /><div className="composer-bottom"><div className="composer-tools"><button type="button" className="tool-button" onClick={() => setToast('File attachments are ready for a future pass.')}>＋ <span>Attach</span></button><span className="composer-hint">Dora the Explorer can make mistakes. Check important info.</span></div><button className="send-button" type="submit" disabled={busy} aria-label="Send message">↑</button></div></form></div>
       <div className="mobile-note">Built for thoughtful work, one conversation at a time.</div>
-      <footer className="site-footer"><span>Created by Manav</span><span className="footer-dot">·</span><a href="https://github.com/manava10/Gemini.git" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a></footer>
+      <footer className="site-footer"><span>Created by <a className="creator-link" href="https://github.com/manava10" target="_blank" rel="noreferrer">Manav <span aria-hidden="true">↗</span></a></span><span className="footer-dot">·</span><a href="https://github.com/manava10/DoraTheExplorer" target="_blank" rel="noreferrer">Project GitHub <span aria-hidden="true">↗</span></a></footer>
     </main>
     {apiModalOpen && <div className="modal-backdrop" onClick={(event) => { if (event.target === event.currentTarget) setApiModalOpen(false); }}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button className="modal-close icon-button" onClick={() => setApiModalOpen(false)} aria-label="Close">&times;</button><div className="modal-kicker">Private connection</div><h2 id="modalTitle">Bring your own Gemini key</h2><p className="modal-copy">Your key stays in this browser and is sent only to Google Gemini when you send a message. It is never uploaded anywhere else.</p><label className="field-label" htmlFor="apiKeyInput">Gemini API key</label><div className="key-input-wrap"><input id="apiKeyInput" type="password" placeholder="AIza..." autoComplete="off" value={keyInput} onChange={(event) => setKeyInput(event.target.value)} /><button type="button" onClick={(event) => { const input = document.querySelector('#apiKeyInput'); input.type = input.type === 'text' ? 'password' : 'text'; event.currentTarget.textContent = input.type === 'text' ? 'Hide' : 'Show'; }}>Show</button></div><a className="help-link" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">Get a key from Google AI Studio ↗</a><button className="connect-button" disabled={checkingKey} onClick={validateAndConnect}>{checkingKey ? 'Checking key...' : 'Save and connect'} <span>↗</span></button><p className="modal-error">{keyError}</p></div></div>}
     {toast && <div className="toast show" role="status">{toast}</div>}
