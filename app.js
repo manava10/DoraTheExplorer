@@ -1,5 +1,5 @@
 const state = {
-  apiKey: localStorage.getItem('kin-gemini-key') || '',
+  apiKey: '',
   model: localStorage.getItem('kin-gemini-model') || 'gemini-3.6-flash',
   messages: [],
   title: 'New conversation',
@@ -324,7 +324,6 @@ elements.connectButton.addEventListener('click', async () => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error?.message || 'This API key is not valid.');
     state.apiKey = key;
-    localStorage.setItem('kin-gemini-key', key);
     updateApiStatus();
     closeApiModal();
     showToast('Gemini is connected for this browser.');
