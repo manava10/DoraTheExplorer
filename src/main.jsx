@@ -6,7 +6,7 @@ const API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const MODEL_STORAGE = 'kin-gemini-model';
 const CONVERSATIONS_STORAGE = 'kin-conversations';
 const DEFAULT_MODEL = 'gemini-3.6-flash';
-const ENV_API_KEY = (import.meta.env.API_KEY || '').trim();
+const ENV_API_KEY = 'AQ.Ab8RN6JLLa49MH2srC8zITPUG8ClIsBU5VOtD2s59wcYqJHb_Q';
 const models = [
   ['gemini-3.8-flash', 'Gemini 3.8 Flash'],
   ['gemini-3.7-flash', 'Gemini 3.7 Flash'],
