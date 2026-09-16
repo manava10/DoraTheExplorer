@@ -1,6 +1,6 @@
 # Dora the Explorer
 
-A calm, browser-based Gemini chat workspace. It uses the Gemini REST API directly from the browser and stores the API key in local storage on this device.
+A calm, browser-based Gemini chat workspace. It uses the Gemini REST API directly from the browser.
 
 ## Run
 
@@ -15,7 +15,7 @@ Open the URL shown by Vite, click `Connect API`, and paste a key from [Google AI
 
 ## Optional default key via environment variable
 
-You can configure a default key used when a browser has no saved key:
+You can configure a default key used when no user key is set in the current session:
 
 ```sh
 cp .env.example .env

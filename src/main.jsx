@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import '../styles.css';
 
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
-const KEY_STORAGE = 'kin-gemini-key';
 const MODEL_STORAGE = 'kin-gemini-model';
 const CONVERSATIONS_STORAGE = 'kin-conversations';
 const DEFAULT_MODEL = 'gemini-3.6-flash';
@@ -86,7 +85,7 @@ function readConversations() {
 }
 
 function App() {
-  const [userApiKey, setUserApiKey] = useState(() => localStorage.getItem(KEY_STORAGE) || '');
+  const [userApiKey, setUserApiKey] = useState('');
   const [model, setModel] = useState(() => localStorage.getItem(MODEL_STORAGE) || DEFAULT_MODEL);
   const [messages, setMessages] = useState([]);
   const [title, setTitle] = useState('New conversation');
@@ -126,7 +125,7 @@ function App() {
       const response = await fetch(`${API_BASE}/models/${model}?key=${encodeURIComponent(key)}`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error?.message || 'This API key is not valid.');
-      localStorage.setItem(KEY_STORAGE, key); setUserApiKey(key); setApiModalOpen(false); setToast('Gemini is connected for this browser.');
+      setUserApiKey(key); setApiModalOpen(false); setToast('Gemini is connected for this session.');
     } catch (error) {
       setKeyError(error.message.includes('key') ? 'This API key is invalid or does not have access to the selected model.' : error.message);
     } finally { setCheckingKey(false); }
@@ -185,7 +184,7 @@ function App() {
       <div className="mobile-note">Built for thoughtful work, one conversation at a time.</div>
       <footer className="site-footer"><span>Created by <a className="creator-link" href="https://github.com/manava10" target="_blank" rel="noreferrer">Manav <span aria-hidden="true">↗</span></a></span><span className="footer-dot">·</span><a href="https://github.com/manava10/DoraTheExplorer" target="_blank" rel="noreferrer">Project GitHub <span aria-hidden="true">↗</span></a></footer>
     </main>
-    {apiModalOpen && <div className="modal-backdrop" onClick={(event) => { if (event.target === event.currentTarget) setApiModalOpen(false); }}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button className="modal-close icon-button" onClick={() => setApiModalOpen(false)} aria-label="Close">&times;</button><div className="modal-kicker">Private connection</div><h2 id="modalTitle">{ENV_API_KEY ? 'Optional Gemini key override' : 'Bring your own Gemini key'}</h2><p className="modal-copy">{ENV_API_KEY ? 'A default key is configured via environment variable for this deployment. Add your own key here if you want to override it in this browser.' : 'Your key stays in this browser and is sent only to Google Gemini when you send a message. It is never uploaded anywhere else.'}</p><label className="field-label" htmlFor="apiKeyInput">Gemini API key</label><div className="key-input-wrap"><input id="apiKeyInput" type="password" placeholder="AIza..." autoComplete="off" value={keyInput} onChange={(event) => setKeyInput(event.target.value)} /><button type="button" onClick={(event) => { const input = document.querySelector('#apiKeyInput'); input.type = input.type === 'text' ? 'password' : 'text'; event.currentTarget.textContent = input.type === 'text' ? 'Hide' : 'Show'; }}>Show</button></div><a className="help-link" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">Get a key from Google AI Studio ↗</a><button className="connect-button" disabled={checkingKey} onClick={validateAndConnect}>{checkingKey ? 'Checking key...' : 'Save and connect'} <span>↗</span></button><p className="modal-error">{keyError}</p></div></div>}
+    {apiModalOpen && <div className="modal-backdrop" onClick={(event) => { if (event.target === event.currentTarget) setApiModalOpen(false); }}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button className="modal-close icon-button" onClick={() => setApiModalOpen(false)} aria-label="Close">&times;</button><div className="modal-kicker">Private connection</div><h2 id="modalTitle">{ENV_API_KEY ? 'Optional Gemini key override' : 'Bring your own Gemini key'}</h2><p className="modal-copy">{ENV_API_KEY ? 'A default key is configured via environment variable for this deployment. Add your own key here if you want to override it for this session.' : 'Your key is kept only for this session and is sent only to Google Gemini when you send a message. It is never uploaded anywhere else.'}</p><label className="field-label" htmlFor="apiKeyInput">Gemini API key</label><div className="key-input-wrap"><input id="apiKeyInput" type="password" placeholder="AIza..." autoComplete="off" value={keyInput} onChange={(event) => setKeyInput(event.target.value)} /><button type="button" onClick={(event) => { const input = document.querySelector('#apiKeyInput'); input.type = input.type === 'text' ? 'password' : 'text'; event.currentTarget.textContent = input.type === 'text' ? 'Hide' : 'Show'; }}>Show</button></div><a className="help-link" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">Get a key from Google AI Studio ↗</a><button className="connect-button" disabled={checkingKey} onClick={validateAndConnect}>{checkingKey ? 'Checking key...' : 'Save and connect'} <span>↗</span></button><p className="modal-error">{keyError}</p></div></div>}
     {toast && <div className="toast show" role="status">{toast}</div>}
   </div>;
 }
